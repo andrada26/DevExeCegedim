@@ -34,11 +34,12 @@
       </p>
     </div>
   </div>
-  <div class="matrixStyle">
-    <table class="table2Style" v-if="cMatrix.length > 0">
+  <div class="matrixStyle" v-if="bMaxMatrix.length > 0">
+    <table class="table2Style" v-if="cMatrix.length > 0 && calculate.value != 2">
       <tbody>
-        <tr class="rowStyle" v-for="(row, rowIndex) in 4" :key="rowIndex">
-            <td class="colStyle" v-for="(col, colIndex) in 4" :key="colIndex">{{ cMatrix[rowIndex * 4 + colIndex] }}</td>
+        <tr class="rowStyle" v-for="(row, rowIndex) in cMatrix" :key="rowIndex">
+          <td class="colStyle" v-for="(col, colIndex) in cMatrix" :key="colIndex"
+            @click="handlecClick(rowIndex, colIndex)">{{ cDisplay[rowIndex][colIndex] }}</td>
         </tr>
       </tbody>
     </table>
@@ -51,15 +52,27 @@ import { ref } from 'vue';
 
 const inputText = ref('');
 const bMatrix = ref([]);
-const bMaxMatrix = [];
-const cMatrix = ref([]);
-const charResult = [];
-
+const bMaxMatrix = ref([]);
+const charResult = ref([]);
+const calculate = ref(0);
+const cMatrix = ref(Array.from({ length: 4 }, () => Array(4).fill("")));
+const cDisplay = ref(Array.from({ length: 4 }, () => Array(4).fill("?")));
+const cClicked = ref(Array.from({ length: 4 }, () => Array(4).fill("0")));
 
 const createMax = () => {
 
+  calculate.value += 1;
+
+  if (calculate.value === 2) {
+    bMatrix.value = [];
+    bMaxMatrix.value = [];
+    charResult.value = [];
+    calculate.value = 0;
+  }
+
   const numbers = inputText.value.split(",");
-  let smallestInteger = Number.MIN_SAFE_INTEGER;
+  let smallestInteger = ref(Number.MIN_SAFE_INTEGER);
+  let index = ref(0);
 
   for (const number of numbers) {
     const firstDigit = Number(number[0]);
@@ -68,29 +81,35 @@ const createMax = () => {
 
 
   for (let k = 0; k < 10; k++) {
-    smallestInteger = Number.MIN_SAFE_INTEGER;
+    smallestInteger = ref(Number.MIN_SAFE_INTEGER);
     let foundclass = 0;
+
 
     for (let i = 0; i < bMatrix.value.length; i++) {
 
-      if (bMatrix.value[i][0] > smallestInteger && k == bMatrix.value[i][1]) {
-        console.log(`Verificam: ${smallestInteger} cu ${bMatrix.value[i][0]}`);
-        smallestInteger = bMatrix.value[i][0];
+      if (bMatrix.value[i][0] > smallestInteger.value && k == bMatrix.value[i][1]) {
+        console.log(`Verificam: ${smallestInteger.value} cu ${bMatrix.value[i][0]}`);
+        smallestInteger.value = bMatrix.value[i][0];
         foundclass = 1;
+
       }
 
     }
-    if (foundclass == 1)
-      bMaxMatrix.push(smallestInteger);
-
+    if (foundclass == 1) {
+      console.log(`Max = bMaxMatrix.value[${index.value}] = ${bMaxMatrix.value[index.value]} smallestInteger: ${smallestInteger.value} `);
+      bMaxMatrix.value[index.value] = (smallestInteger.value);
+      index.value += 1;
+    }
   }
   toChar(bMaxMatrix);
 
 };
 const toChar = (numbers) => {
 
-  for (const number of numbers) {
-    let numericValue = Number(number);
+  let index = 0;
+
+  for (let i = 0; i < numbers.value.length; i++) {
+    let numericValue = numbers.value[i];
     //aducem numărul în intervalul [0, 25]
     numericValue = ((numericValue % 26) + 26) % 26;
 
@@ -98,7 +117,8 @@ const toChar = (numbers) => {
     const correspondingLetter = String.fromCharCode("A".charCodeAt(0) + numericValue);
 
     console.log(correspondingLetter);
-    charResult.push(correspondingLetter);
+    charResult.value[index] = (correspondingLetter);
+    index++;
 
   }
   createCMatrix(charResult);
@@ -106,16 +126,41 @@ const toChar = (numbers) => {
 
 const createCMatrix = (charResult) => {
 
+  //const clickedTd = ref([]);
   for (let i = 0; i < 4; i++) {
     for (let j = 0; j < 4; j++) {
-      const randomIndex = Math.floor(Math.random() * charResult.length);
-      console.log(`S-a ales indexul random: ${randomIndex} cu valoarea  ${charResult[randomIndex]}`);
-      cMatrix.value.push(charResult[randomIndex]);
+      const randomIndex = Math.floor(Math.random() * charResult.value.length);
+      //console.log(`S-a ales indexul random: ${randomIndex} cu valoarea  ${charResult.value[randomIndex]}`);
+      cMatrix.value[i][j] = charResult.value[randomIndex];
 
+    }
+  }
+
+  for (let i = 0; i < 4; i++) {
+    console.log(`linia ${i}:`);
+    for (let j = 0; j < 4; j++) {
+      console.log(`${cMatrix.value[i][j]}`);
     }
 
   }
   return cMatrix;
+};
+const handlecClick = (rowIndex, colIndex) => {
+
+  console.log(`Ati apasat pe randul ${rowIndex} si coloana ${colIndex}`)
+
+  if (cClicked.value[rowIndex][colIndex] == 0) {
+    // not clicked => display "?"
+    console.log(`nu era apasat`)
+    cDisplay.value[rowIndex][colIndex] = cMatrix.value[rowIndex][colIndex];
+    cClicked.value[rowIndex][colIndex] = 1;
+  } else {
+    //  clicked => display char
+    cDisplay.value[rowIndex][colIndex] = "?";
+    cClicked.value[rowIndex][colIndex] = 0;
+  }
+  console.log(`cDisplay: ${cDisplay.value[rowIndex][colIndex]} si cClicked ${cClicked.value[rowIndex][colIndex]}`)
+
 };
 </script>
 
@@ -155,10 +200,12 @@ h3 {
   display: flex;
   justify-content: center;
   align-items: center;
+  margin-bottom: 4rem;
 }
 
 .tableStyle {
   display: inline-block;
+  margin-right: 2rem;
 }
 
 .tittleStyle {
@@ -179,16 +226,23 @@ h3 {
   align-items: center;
 }
 
-.table2Style{
-  width: 100%;
+.table2Style {
+  width: 60%;
 }
-.rowStyle{
+
+.rowStyle {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
 }
 
-.colStyle{
-  margin-top: 2rem;
-  margin-bottom: 2rem;
+.colStyle {
+  height: 4.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-image: url("E:\EXE_DEV_CEGEDIM\other\bgd.png"); 
+  background-size: contain; 
+  background-position: center; 
+  background-repeat: no-repeat;
 }
 </style>
